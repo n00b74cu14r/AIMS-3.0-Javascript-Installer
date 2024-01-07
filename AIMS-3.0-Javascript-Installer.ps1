@@ -38,28 +38,52 @@ switch ($choice) {
             Exit
         # End Snippet
         } else {
-            # This portion will run if admin rights are present.
-            Write-Host "You selected admin user, checking for directory now..."
-            Write-Host "Checking for directory now..."
-            $jsDirectory = "C:\Program Files (x86)\Adobe\Acrobat X.0\Acrobat\Javascripts\"
-            
-            # Check if directory exists, if not create it.
-            if (-not (Test-Path $jsDirectory)) {
-                Write-Host "Directory not found, creating..."
-                New-Item -ItemType Directory -Path $jsDirectory | Out-Null
-                
-            } else {
-                # Directory exists, continue.
-                Write-Host "Directory found, continuing..."
-            }     
+            # This will check to see where the Acrobat.exe file is located and return the folder $acrobatPath
+            $programFilesx86 = [Environment]::GetFolderPath("ProgramFilesX86")
+            $programFiles = [Environment]::GetFolderPath("ProgramFiles")
 
-            # Create the LockAfterSigning.js file in the created directory.
-            Write-Host "Creating LockAfterSigning.js..."
-            $jsFilePath = Join-Path -Path $jsDirectory -ChildPath "LockAfterSigning.js"
-            $jsCode | Out-File -FilePath $jsFilePath -Encoding UTF8
-            Write-Host "Complete!"
-            Write-Host "-----------------------------------------------------"
-            
+            $acrobatPath = Get-ChildItem -Path "$programFilesx86\Adobe\*\acrobat.exe" -Recurse -ErrorAction SilentlyContinue |
+                        Select-Object -First 1 -ExpandProperty DirectoryName
+            if ($acrobatPath) {
+                Write-Output ("Acrobat path found: $acrobatPath")
+            } else {
+                $acrobatPath = Get-ChildItem -Path "$programFiles\Adobe\*\acrobat.exe" -Recurse -ErrorAction SilentlyContinue |
+                        Select-Object -First 1 -ExpandProperty DirectoryName
+                if ($acrobatPath) {
+                    Write-Output ("Acrobat path found: $acrobatPath")
+                }else{
+                    Write-Output "Acrobat not found, please install Acrobat and try again."
+                }
+            }
+            $jsDirectory = Join-Path -Path $acrobatPath -ChildPath "/Javascripts"
+
+            # Check if "Javascripts" folder exists in subfolders of $jsLink
+            if (Test-Path -Path $jsDirectory) {
+                # The link is valid
+                Write-Output "Javascripts folder already exists, continuing..."
+            } else {
+                # The folder does not exist
+                Write-Host "Javascripts folder not found, creating..."
+                New-Item -ItemType Directory -Path $jsDirectory | Out-Null
+                Write-Host "Javascripts folder created!"
+            }
+            # Directory created, now check for LockAfterSigning.js
+            $files = Get-ChildItem -Path $jsDirectory
+            $jsCheck = $files | Where-Object { $_.Name -eq "LockAfterSigning.js" }
+
+            if ($jsCheck) {
+                # Check if LockAfterSigning.js exists
+                Write-Host "LockAfterSigning.js already exists in the following directory: " $jsDirectory
+            } else {
+                # Create js if it does not exist
+                Write-Host "LockAfterSigning.js file does not exist."
+                Write-Host "Creating LockAfterSigning.js..."
+                $jsFilePath = Join-Path -Path $jsDirectory -ChildPath "LockAfterSigning.js"
+                $jsCode | Out-File -FilePath $jsFilePath -Encoding UTF8
+                Write-Host "Complete!"
+                Write-Host "Your file: LockAfterSigning.js, was created in the following directory:" $jsDirectory
+                Write-Host "-----------------------------------------------------"
+            }
             #Press any key to continue...
             cmd /c pause
         }
@@ -84,7 +108,7 @@ switch ($choice) {
 
         if ($jsCheck) {
             # Check if LockAfterSigning.js exists
-            Write-Host "LockAfterSigning.js file exists."
+            Write-Host "LockAfterSigning.js already exists in the following directory: " $jsDirectory
         } else {
             # Create js if it does not exist
             Write-Host "LockAfterSigning.js file does not exist."
@@ -92,6 +116,7 @@ switch ($choice) {
             $jsFilePath = Join-Path -Path $jsDirectory -ChildPath "LockAfterSigning.js"
             $jsCode | Out-File -FilePath $jsFilePath -Encoding UTF8
             Write-Host "Complete!"
+            Write-Host "Your file: LockAfterSigning.js, was created in the following directory: " $jsDirectory
             Write-Host "-----------------------------------------------------"
         }
         #Press any key to continue...
