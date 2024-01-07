@@ -37,8 +37,7 @@ switch ($choice) {
             Start-Process -FilePath PowerShell.exe -Verb Runas -ArgumentList "-File `"$($MyInvocation.MyCommand.Path)`"  `"$($MyInvocation.MyCommand.UnboundArguments)`""
             Exit
         # End Snippet
-        } else 
-            {
+        } else {
             # This portion will run if admin rights are present.
             Write-Host "You selected admin user, checking for directory now..."
             Write-Host "Checking for directory now..."
@@ -67,7 +66,6 @@ switch ($choice) {
     }
     2 { # Basic User
         Write-Host "You selected basic user, checking for directory now..."
-        Write-Host "Checking for directory now..."
         $currentUser = $env:USERNAME
         $jsDirectory = "C:\Users\$currentUser\AppData\Roaming\Adobe\Acrobat\Privileged\DC\JavaScripts"
         
@@ -80,14 +78,22 @@ switch ($choice) {
             # Directory exists, continue.
             Write-Host "Directory found, continuing..."
         }     
+        
+        $files = Get-ChildItem -Path $jsDirectory
+        $jsCheck = $files | Where-Object { $_.Name -eq "LockAfterSigning.js" }
 
-        # Create the LockAfterSigning.js file in the created directory.
-        Write-Host "Creating LockAfterSigning.js..."
-        $jsFilePath = Join-Path -Path $jsDirectory -ChildPath "LockAfterSigning.js"
-        $jsCode | Out-File -FilePath $jsFilePath -Encoding UTF8
-        Write-Host "Complete!"
-        Write-Host "-----------------------------------------------------"
-
+        if ($jsCheck) {
+            # Check if LockAfterSigning.js exists
+            Write-Host "LockAfterSigning.js file exists."
+        } else {
+            # Create js if it does not exist
+            Write-Host "LockAfterSigning.js file does not exist."
+            Write-Host "Creating LockAfterSigning.js..."
+            $jsFilePath = Join-Path -Path $jsDirectory -ChildPath "LockAfterSigning.js"
+            $jsCode | Out-File -FilePath $jsFilePath -Encoding UTF8
+            Write-Host "Complete!"
+            Write-Host "-----------------------------------------------------"
+        }
         #Press any key to continue...
         cmd /c pause
     }
